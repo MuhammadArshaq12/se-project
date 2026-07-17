@@ -1,0 +1,1 @@
+"""IDS alert blueprint package."""

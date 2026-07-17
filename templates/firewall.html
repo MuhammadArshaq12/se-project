@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Firewall Rules | SentinelLab{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">ACCESS CONTROL</p>
+        <h1>Firewall rules</h1>
+        <p>Block simulated requests by exact IP address or destination port.</p>
+    </div>
+    <span class="simulation-badge"><i class="bi bi-shield-check"></i> Simulation mode</span>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card panel-card">
+            <div class="card-header">
+                <div><h5>Add a rule</h5><p>Create an IP or port block rule</p></div>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('firewall.add') }}">
+                    <div class="mb-3">
+                        <label class="form-label" for="rule_type">Rule type</label>
+                        <select class="form-select" id="rule_type" name="rule_type" required>
+                            <option value="IP">IP Address</option>
+                            <option value="PORT">Port Number</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="rule_value">Value</label>
+                        <input class="form-control" id="rule_value" name="value"
+                               placeholder="e.g. 192.168.1.100" required>
+                        <div class="form-text" id="ruleHelp">Enter a valid IPv4 or IPv6 address.</div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label" for="description">Description</label>
+                        <textarea class="form-control" id="description" name="description"
+                                  rows="3" placeholder="Why is this rule needed?"></textarea>
+                    </div>
+                    <button class="btn btn-primary w-100" type="submit">
+                        <i class="bi bi-plus-lg me-2"></i>Add firewall rule
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card panel-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div><h5>Configured rules</h5><p>Enable, disable, or remove rules</p></div>
+                <span class="count-badge">{{ rules|length }} total</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table modern-table mb-0">
+                    <thead><tr><th>Type</th><th>Value</th><th>Description</th><th>Status</th><th>Created</th><th></th></tr></thead>
+                    <tbody>
+                    {% for rule in rules %}
+                        <tr class="{{ 'rule-disabled' if not rule.active }}">
+                            <td>
+                                <span class="rule-icon rule-{{ rule.rule_type|lower }}">
+                                    <i class="bi {{ 'bi-globe2' if rule.rule_type == 'IP' else 'bi-ethernet' }}"></i>
+                                </span>
+                                {{ rule.rule_type }}
+                            </td>
+                            <td><code>{{ rule.value }}</code></td>
+                            <td class="text-muted">{{ rule.description or 'No description' }}</td>
+                            <td>
+                                <span class="status-pill {{ 'status-active' if rule.active else 'status-inactive' }}">
+                                    {{ 'Active' if rule.active else 'Disabled' }}
+                                </span>
+                            </td>
+                            <td class="text-muted">{{ rule.created_at.strftime('%b %d, %Y') }}</td>
+                            <td class="text-end text-nowrap">
+                                <form method="post" action="{{ url_for('firewall.toggle', rule_id=rule.id) }}" class="d-inline">
+                                    <button class="btn btn-sm btn-icon" title="Enable or disable">
+                                        <i class="bi {{ 'bi-pause' if rule.active else 'bi-play' }}"></i>
+                                    </button>
+                                </form>
+                                <form method="post" action="{{ url_for('firewall.delete', rule_id=rule.id) }}" class="d-inline"
+                                      onsubmit="return confirm('Delete this firewall rule?')">
+                                    <button class="btn btn-sm btn-icon text-danger" title="Delete">
+                                        <i class="bi bi-trash3"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="6" class="empty-state">No rules configured. Add your first rule.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const ruleType = document.getElementById("rule_type");
+    const ruleValue = document.getElementById("rule_value");
+    const ruleHelp = document.getElementById("ruleHelp");
+    ruleType.addEventListener("change", () => {
+        const isPort = ruleType.value === "PORT";
+        ruleValue.placeholder = isPort ? "e.g. 23" : "e.g. 192.168.1.100";
+        ruleHelp.textContent = isPort
+            ? "Enter a port number from 1 to 65535."
+            : "Enter a valid IPv4 or IPv6 address.";
+    });
+</script>
+{% endblock %}
