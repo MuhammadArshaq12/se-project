@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Request Simulator | SentinelLab{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">SAFE TEST ENVIRONMENT</p>
+        <h1>Request simulator</h1>
+        <p>Send fictional traffic through firewall and IDS rules without touching a real network.</p>
+    </div>
+    <span class="simulation-badge"><i class="bi bi-lock"></i> 100% simulated</span>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card panel-card">
+            <div class="card-header">
+                <div><h5>Request details</h5><p>Configure fictional network traffic</p></div>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('simulator.index') }}">
+                    <div class="mb-3">
+                        <label class="form-label" for="ip_address">Source IP address</label>
+                        <input class="form-control form-control-lg" id="ip_address" name="ip_address"
+                               placeholder="192.168.1.25" required>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label" for="port">Destination port</label>
+                            <input class="form-control" type="number" id="port" name="port"
+                                   min="1" max="65535" placeholder="443" required>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="protocol">Protocol</label>
+                            <select class="form-select" id="protocol" name="protocol">
+                                {% for protocol in protocols %}
+                                    <option value="{{ protocol }}">{{ protocol }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="username">Username <span class="text-muted">(optional)</span></label>
+                        <input class="form-control" id="username" name="username" placeholder="student01">
+                    </div>
+                    <div class="failed-login-box mb-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch"
+                                   id="failed_login" name="failed_login">
+                            <label class="form-check-label fw-semibold" for="failed_login">Simulate failed login</label>
+                        </div>
+                        <small>Three recent failed attempts from one IP trigger a High alert.</small>
+                    </div>
+                    <button class="btn btn-primary btn-lg w-100" type="submit">
+                        <i class="bi bi-send me-2"></i>Analyze request
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        {% if result %}
+        <div class="card panel-card result-card {{ 'result-blocked' if result.status == 'Blocked' else 'result-allowed' }}">
+            <div class="card-body">
+                <div class="result-summary">
+                    <span class="result-icon">
+                        <i class="bi {{ 'bi-x-octagon-fill' if result.status == 'Blocked' else 'bi-check-circle-fill' }}"></i>
+                    </span>
+                    <div>
+                        <p>FIREWALL DECISION</p>
+                        <h2>{{ result.access_message }}</h2>
+                        <span>{{ 'Matched ' + result.matched_rule if result.matched_rule else 'No active rule matched this request' }}</span>
+                    </div>
+                </div>
+                <div class="result-details">
+                    <div><span>Source</span><strong>{{ result.ip_address }}</strong></div>
+                    <div><span>Destination</span><strong>Port {{ result.port }}</strong></div>
+                    <div><span>Protocol</span><strong>{{ result.protocol }}</strong></div>
+                    <div><span>User</span><strong>{{ result.username }}</strong></div>
+                </div>
+                <div class="ids-result">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5><i class="bi bi-shield-exclamation me-2"></i>IDS analysis</h5>
+                        <span class="status-pill {{ 'status-danger' if result.alerts else 'status-active' }}">
+                            {{ result.alerts|length }} alert{{ '' if result.alerts|length == 1 else 's' }}
+                        </span>
+                    </div>
+                    {% for alert in result.alerts %}
+                        <div class="alert-row">
+                            <span class="severity severity-{{ alert.severity|lower }}">{{ alert.severity }}</span>
+                            <span>{{ alert.reason }}</span>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">No IDS rule detected suspicious behavior.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="card panel-card h-100">
+            <div class="card-body d-flex align-items-center justify-content-center text-center empty-result">
+                <div>
+                    <span><i class="bi bi-radar"></i></span>
+                    <h4>Ready to analyze</h4>
+                    <p>Complete the form to see firewall and IDS decisions here.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

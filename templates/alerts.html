@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}IDS Alerts | SentinelLab{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">THREAT DETECTION</p>
+        <h1>IDS alerts</h1>
+        <p>Review suspicious behavior found by the rule-based detection engine.</p>
+    </div>
+    <span class="simulation-badge"><i class="bi bi-cpu"></i> Rule-based IDS</span>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="ids-rule-card">
+            <span>01</span><div><strong>Traffic burst</strong><small>More than 5 requests per minute</small></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="ids-rule-card">
+            <span>02</span><div><strong>Blocked traffic</strong><small>Request matches an active firewall rule</small></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="ids-rule-card">
+            <span>03</span><div><strong>Login failures</strong><small>3 failed attempts within 10 minutes</small></div>
+        </div>
+    </div>
+</div>
+
+<div class="card panel-card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-7">
+                <label class="form-label" for="search">Search alerts</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input class="form-control" id="search" name="search" value="{{ search }}"
+                           placeholder="Search IP address or alert reason...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="severity">Severity</label>
+                <select class="form-select" id="severity" name="severity">
+                    <option value="">All severities</option>
+                    {% for option in ['Low', 'Medium', 'High', 'Critical'] %}
+                        <option value="{{ option }}" {{ 'selected' if severity == option }}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button class="btn btn-primary flex-grow-1">Filter</button>
+                <a class="btn btn-light" href="{{ url_for('alerts.index') }}"><i class="bi bi-x-lg"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card panel-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div><h5>Detected activity</h5><p>Alerts are generated only from simulated requests</p></div>
+        <span class="count-badge">{{ alerts|length }} alerts</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table modern-table mb-0">
+            <thead><tr><th>Alert</th><th>IP address</th><th>Detection reason</th><th>Severity</th><th>Date &amp; time</th></tr></thead>
+            <tbody>
+            {% for alert in alerts %}
+                <tr>
+                    <td class="text-muted">#{{ alert.id }}</td>
+                    <td><code>{{ alert.ip_address }}</code></td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="alert-symbol"><i class="bi bi-shield-exclamation"></i></span>
+                            {{ alert.reason }}
+                        </div>
+                    </td>
+                    <td><span class="severity severity-{{ alert.severity|lower }}">{{ alert.severity }}</span></td>
+                    <td class="text-muted text-nowrap">{{ alert.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="5" class="empty-state">No alerts match the selected filters.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

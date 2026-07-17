@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Security Dashboard | SentinelLab{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">SECURITY OVERVIEW</p>
+        <h1>Dashboard</h1>
+        <p>Live statistics from your simulated firewall and IDS activity.</p>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('simulator.index') }}">
+        <i class="bi bi-play-circle me-2"></i>Simulate request
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl">
+        <div class="card stat-card accent-blue h-100">
+            <div class="card-body">
+                <span class="stat-icon"><i class="bi bi-activity"></i></span>
+                <p>Total requests</p>
+                <h2>{{ stats.total_requests }}</h2>
+                <small>All simulated traffic</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl">
+        <div class="card stat-card accent-green h-100">
+            <div class="card-body">
+                <span class="stat-icon"><i class="bi bi-check2-circle"></i></span>
+                <p>Allowed</p>
+                <h2>{{ stats.allowed_requests }}</h2>
+                <small>Passed firewall rules</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl">
+        <div class="card stat-card accent-red h-100">
+            <div class="card-body">
+                <span class="stat-icon"><i class="bi bi-slash-circle"></i></span>
+                <p>Blocked</p>
+                <h2>{{ stats.blocked_requests }}</h2>
+                <small>Denied by IP or port</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl">
+        <div class="card stat-card accent-amber h-100">
+            <div class="card-body">
+                <span class="stat-icon"><i class="bi bi-exclamation-triangle"></i></span>
+                <p>Suspicious</p>
+                <h2>{{ stats.suspicious_activities }}</h2>
+                <small>Requests with IDS alerts</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl">
+        <div class="card stat-card accent-purple h-100">
+            <div class="card-body">
+                <span class="stat-icon"><i class="bi bi-funnel"></i></span>
+                <p>Active rules</p>
+                <h2>{{ stats.active_rules }}</h2>
+                <small>IP and port filters</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-xl-8">
+        <div class="card panel-card h-100">
+            <div class="card-header">
+                <div>
+                    <h5>Traffic activity</h5>
+                    <p>Requests recorded over the last seven days</p>
+                </div>
+            </div>
+            <div class="card-body chart-body"><canvas id="trafficChart"></canvas></div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="card panel-card h-100">
+            <div class="card-header">
+                <div><h5>Request outcome</h5><p>Allowed versus blocked traffic</p></div>
+            </div>
+            <div class="card-body chart-body chart-body-small"><canvas id="statusChart"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<div class="card panel-card">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <div><h5>Recent IDS alerts</h5><p>Latest suspicious activities detected by rules</p></div>
+        <a href="{{ url_for('alerts.index') }}" class="btn btn-sm btn-light">View all</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table modern-table mb-0">
+            <thead><tr><th>IP address</th><th>Reason</th><th>Severity</th><th>Detected</th></tr></thead>
+            <tbody>
+            {% for alert in recent_alerts %}
+                <tr>
+                    <td><code>{{ alert.ip_address }}</code></td>
+                    <td>{{ alert.reason }}</td>
+                    <td><span class="severity severity-{{ alert.severity|lower }}">{{ alert.severity }}</span></td>
+                    <td class="text-muted">{{ alert.created_at.strftime('%b %d, %H:%M') }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="4" class="empty-state">No IDS alerts yet. Simulate a request to begin.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+    const trafficData = {{ traffic_chart|tojson }};
+    const statusData = {{ status_chart|tojson }};
+
+    new Chart(document.getElementById("trafficChart"), {
+        type: "line",
+        data: {
+            labels: trafficData.labels,
+            datasets: [{
+                label: "Requests",
+                data: trafficData.values,
+                borderColor: "#5b67f1",
+                backgroundColor: "rgba(91, 103, 241, .12)",
+                fill: true,
+                tension: .4,
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } }
+        }
+    });
+
+    new Chart(document.getElementById("statusChart"), {
+        type: "doughnut",
+        data: {
+            labels: statusData.labels,
+            datasets: [{
+                data: statusData.values,
+                backgroundColor: ["#20b486", "#f15b64"],
+                borderWidth: 0,
+                hoverOffset: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: "72%",
+            plugins: { legend: { position: "bottom", labels: { usePointStyle: true, padding: 18 } } }
+        }
+    });
+</script>
+{% endblock %}
